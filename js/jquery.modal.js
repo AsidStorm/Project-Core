@@ -1,6 +1,10 @@
 ;(function($, window, document, undefined) {
 	"use strict";
-
+	var files = new Object;
+	files.test = {
+		1: 0
+	};
+	
 	function lockContainer() {
 		$('html, body')
 			.addClass('lock');
@@ -61,6 +65,16 @@
 								break;
 							case 'hidden':
 								tpl += "<input type='hidden' value='" + object.value + "' id='" + id + "' />";
+								break;
+							case 'file':
+								tpl += "<tr id='" + uid + "'>"
+									+ "<td>"
+									+ object.title
+									+ "</td>"
+									+ "<td>"
+									+ "<input type='" + object.type + "' id='" + id + "' style='width: 98%;' />"
+									+ "</td>"
+									+ "</tr>";
 								break;
 							case 'password':
 								tpl += "<tr id='" + uid + "'>"
@@ -210,6 +224,8 @@
 						.find(".content")
 						.html(tpl);
 					
+					
+					$.modal().initFiles();
 					$.modal().setupButtons(buttons, fields);
 				}
 			},
@@ -229,6 +245,13 @@
 							.append("<option value='" + k + "'" + ((selected == k)?' selected':'') + ">" + o.t + "</option>");
 					});
 				}
+			},
+			initFiles: function(){
+				$("input[type='file']")
+					.change(function(event){
+						var id = $(this).attr("id");
+						files[id] = event.target.files;
+					});
 			},
 			autocomplete: function(id, action){
 				$.ajax({
@@ -269,6 +292,9 @@
 					}
 				});
 			},
+			getFiles: function(){
+				return files;
+			},
 			setupButtons: function(buttons, fields){
 				if(buttons['cancel'] !== undefined){
 					$("#bCancel")
@@ -305,32 +331,31 @@
 				$("#bOk")
 					.off()
 					.on("click", function(){
-						var data = new Object;
-						data['act'] = buttons['ok'].action;
+						var data = new FormData();
+						data.append('act', buttons['ok'].action);
 					
 						$.each(fields, function(key, object){
-							data[key] = $("#" + key).val();
-							
-							if(object.type == 'multidata'){ /* Kostil' */
+							if(object.type == 'multidata'){
 								$.each(object.data, function(k, v){
 									$.each(v.actions, function(i, o){
-										data['acl_' + o.aclID] = $("#acl_" + o.aclID).val();
+										data.append('acl_' + o.aclID, $("#acl_" + o.aclID).val());
 									});
 								});
 							}
+							else if(object.type == 'file'){
+								data.append(key, $("#" + key)[0].files[0]);
+							}
+							else{
+								data.append(key, $("#" + key).val());
+							}
 							
 							if(object.special == 'autocomplete'){
-								data[key + "ID"] = $("#" + key + "ID").val();
+								data.append(key + "ID", $("#" + key + "ID").val());
 							}
 						});
 						
 						$.ajax({
 							beforeSend: function(){
-								$.each(fields, function(id, object){
-									$("#" + id)
-										.css("border-color", "#202020");
-								});
-								
 								$(".modal-loader")
 									.find("img")
 									.center();
@@ -345,6 +370,8 @@
 							},
 							url: "_ajax.php",
 							type: "POST",
+							processData: false,
+							contentType: false,
 							data: data,
 							success: function(json){
 								$("#bOk, #bCancel")
@@ -372,13 +399,6 @@
 									
 											if(Object.keys(($.noty.store)).length >= 3){ /* Close $.noty while to much */
 												$.noty.closeAll();
-											}
-										
-											if(data['errorFields'] !== undefined){
-												$.each(data['errorFields'], function(key, id){
-													$("#" + id)
-														.css("border-color", "red");
-												});
 											}
 								
 											n(data['desc'], "top", "error");
