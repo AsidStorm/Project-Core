@@ -118,3 +118,40 @@ function n(msg, position, type, callback){
 		}]
 	});
 }
+
+/* Core class */
+
+var core = {
+	rows: { /* Actions with rows */
+		delete: function(className, limit, clear){ /* Remove overflow rows with .className */
+			var cnt = $("." + className).length;
+			
+			if(limit < cnt){
+				console.log("[core.rows.delete]: Too much rows - check [limit] value");
+				console.log("[core.rows.delete]: limit: ", limit, "cnt: ", cnt);
+				return false;
+			}
+			if(clear > limit){
+				console.log("[core.rows.delete]: [clear] must be less than limit");
+				console.log("[core.rows.delete]: limit: ", limit, "clear: ", clear);
+				return false;
+			}
+			
+			if(cnt == limit){
+				for(var i = 0; i < clear; i++){
+					$("." + className + ":last")
+						.remove();
+				}
+			}
+			else{
+				if(cnt < limit && (limit - cnt) < clear){
+					 while( (limit - cnt) < clear ){
+						cnt--;
+						$("." + className + ":last")
+							.remove();
+					}
+				}
+			}
+		}
+	}
+};
